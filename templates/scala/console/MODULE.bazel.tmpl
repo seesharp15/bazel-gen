@@ -1,0 +1,19 @@
+module(
+    name = "__MODULE_NAME__",
+    version = "0.1.0",
+)
+
+bazel_dep(name = "rules_scala", version = "__RULES_SCALA_VERSION__")
+
+scala_config = use_extension(
+    "@rules_scala//scala/extensions:config.bzl",
+    "scala_config",
+)
+scala_config.settings(scala_version = "__SCALA_VERSION__")
+
+scala_deps = use_extension(
+    "@rules_scala//scala/extensions:deps.bzl",
+    "scala_deps",
+)
+scala_deps.scala()
+scala_deps.scalatest()

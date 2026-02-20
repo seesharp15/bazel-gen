@@ -1,0 +1,19 @@
+load("@rules_scala//scala:scala.bzl", "scala_binary", "scala_library", "scala_test")
+
+scala_library(
+    name = "app_lib",
+    srcs = glob(["src/main/scala/**/*.scala"]),
+    visibility = ["//visibility:private"],
+)
+
+scala_binary(
+    name = "app",
+    deps = [":app_lib"],
+    main_class = "__PACKAGE__.Main",
+)
+
+scala_test(
+    name = "app_test",
+    srcs = glob(["src/test/scala/**/*.scala"]),
+    deps = [":app_lib"],
+)

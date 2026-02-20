@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+export BAZEL_GEN_ROOT_DIR="${ROOT_DIR}"
+
+# shellcheck source=../lib/bazel_gen/core.sh
+source "${ROOT_DIR}/lib/bazel_gen/core.sh"
+# shellcheck source=../lib/bazel_gen/templates.sh
+source "${ROOT_DIR}/lib/bazel_gen/templates.sh"
+# shellcheck source=../lib/bazel_gen/commands/new.sh
+source "${ROOT_DIR}/lib/bazel_gen/commands/new.sh"
+
+bazel_gen_usage() {
+  cat <<EOF
+Usage:
+  bazel-gen <command> [args]
+
+Commands:
+  new       Generate a new Bazel project scaffold.
+  version   Print the bazel-gen version.
+  help      Show this help.
+
+Examples:
+  bazel-gen new scala console my-app
+  bazel-gen gen new scala console my-app
+  bazel-gen new scala console my-app --package com.example.myapp
+  bazel-gen new --list
+EOF
+}
+
+main() {
+  local command="${1:-}"
+  case "${command}" in
+    "")
+      bazel_gen_usage
+      exit 1
+      ;;
+    help|-h|--help)
+      bazel_gen_usage
+      ;;
+    version|-v|--version)
+      printf "bazel-gen %s\n" "${BAZEL_GEN_VERSION}"
+      ;;
+    new)
+      shift
+      bazel_gen_cmd_new "$@"
+      ;;
+    gen)
+      shift
+      if [ "${1:-}" = "new" ]; then
+        shift
+        bazel_gen_cmd_new "$@"
+      else
+        bazel_gen_die "Unknown command: gen ${1:-}"
+      fi
+      ;;
+    *)
+      bazel_gen_die "Unknown command: ${command}"
+      ;;
+  esac
+}
+
+main "$@"

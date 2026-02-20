@@ -1,0 +1,9 @@
+package __PACKAGE__
+
+import org.scalatest.funsuite.AnyFunSuite
+
+class MainTest extends AnyFunSuite {
+  test("greeting contains the provided name") {
+    assert(Main.greeting("world") == "Hello, world!")
+  }
+}
