@@ -1,0 +1,4 @@
+description|Runnable Scala console app with Bazel + rules_scala and a ScalaTest scaffold
+option|package|--package|string|com.example.__APP_SLUG__|optional|Scala package for generated sources
+option|scala_version|--scala-version|version|2.13.17|optional|Scala version (built-in template currently supports 2.13.17)
+option|rules_scala_version|--rules-scala-version|version|7.2.1|optional|rules_scala BCR version

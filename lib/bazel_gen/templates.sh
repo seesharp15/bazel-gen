@@ -10,7 +10,17 @@ bazel_gen_template_roots() {
 
 bazel_gen_template_description() {
   local template_dir="$1"
+  local manifest_file="${template_dir}/template.manifest"
   local meta_file="${template_dir}/template.meta"
+  if [ -f "${manifest_file}" ]; then
+    local manifest_description
+    manifest_description="$(sed -n 's/^description|//p' "${manifest_file}" | head -n 1)"
+    if [ -n "${manifest_description}" ]; then
+      printf "%s" "${manifest_description}"
+      return 0
+    fi
+  fi
+
   if [ ! -f "${meta_file}" ]; then
     printf "No description"
     return 0
@@ -92,16 +102,15 @@ bazel_gen_template_layers() {
 
 bazel_gen_render_path() {
   local template_relative_path="$1"
-  local rendered="${template_relative_path}"
+  local rendered
+  rendered="$(bazel_gen_replace_builtin_placeholders "${template_relative_path}")"
 
-  rendered="${rendered//__APP_NAME__/${BAZEL_GEN_TMPL_APP_NAME}}"
-  rendered="${rendered//__APP_SLUG__/${BAZEL_GEN_TMPL_APP_SLUG}}"
-  rendered="${rendered//__MODULE_NAME__/${BAZEL_GEN_TMPL_MODULE_NAME}}"
-  rendered="${rendered//__PACKAGE__/${BAZEL_GEN_TMPL_PACKAGE}}"
-  rendered="${rendered//__PACKAGE_PATH__/${BAZEL_GEN_TMPL_PACKAGE_PATH}}"
-  rendered="${rendered//__SCALA_VERSION__/${BAZEL_GEN_TMPL_SCALA_VERSION}}"
-  rendered="${rendered//__RULES_SCALA_VERSION__/${BAZEL_GEN_TMPL_RULES_SCALA_VERSION}}"
-  rendered="${rendered//__YEAR__/${BAZEL_GEN_TMPL_YEAR}}"
+  local i
+  for ((i = 0; i < ${#BAZEL_GEN_MANIFEST_OPTION_KEYS[@]}; i++)); do
+    local option_key_upper
+    option_key_upper="$(bazel_gen_to_upper "${BAZEL_GEN_MANIFEST_OPTION_KEYS[${i}]}")"
+    rendered="${rendered//__OPT_${option_key_upper}__/${BAZEL_GEN_MANIFEST_OPTION_VALUES[${i}]}}"
+  done
 
   case "${rendered}" in
     *.tmpl)
@@ -142,19 +151,37 @@ bazel_gen_render_template_file() {
   scala_version_escaped="$(bazel_gen_escape_sed_replacement "${BAZEL_GEN_TMPL_SCALA_VERSION}")"
   local rules_scala_version_escaped
   rules_scala_version_escaped="$(bazel_gen_escape_sed_replacement "${BAZEL_GEN_TMPL_RULES_SCALA_VERSION}")"
+  local java_version_escaped
+  java_version_escaped="$(bazel_gen_escape_sed_replacement "${BAZEL_GEN_TMPL_JAVA_VERSION}")"
+  local rules_java_version_escaped
+  rules_java_version_escaped="$(bazel_gen_escape_sed_replacement "${BAZEL_GEN_TMPL_RULES_JAVA_VERSION}")"
   local year_escaped
   year_escaped="$(bazel_gen_escape_sed_replacement "${BAZEL_GEN_TMPL_YEAR}")"
 
-  sed \
-    -e "s|__APP_NAME__|${app_name_escaped}|g" \
-    -e "s|__APP_SLUG__|${app_slug_escaped}|g" \
-    -e "s|__MODULE_NAME__|${module_name_escaped}|g" \
-    -e "s|__PACKAGE__|${package_escaped}|g" \
-    -e "s|__PACKAGE_PATH__|${package_path_escaped}|g" \
-    -e "s|__SCALA_VERSION__|${scala_version_escaped}|g" \
-    -e "s|__RULES_SCALA_VERSION__|${rules_scala_version_escaped}|g" \
-    -e "s|__YEAR__|${year_escaped}|g" \
-    "${template_source_file}" | bazel_gen_write_file "${output_file}"
+  local -a sed_args
+  sed_args=(
+    -e "s|__APP_NAME__|${app_name_escaped}|g"
+    -e "s|__APP_SLUG__|${app_slug_escaped}|g"
+    -e "s|__MODULE_NAME__|${module_name_escaped}|g"
+    -e "s|__PACKAGE__|${package_escaped}|g"
+    -e "s|__PACKAGE_PATH__|${package_path_escaped}|g"
+    -e "s|__SCALA_VERSION__|${scala_version_escaped}|g"
+    -e "s|__RULES_SCALA_VERSION__|${rules_scala_version_escaped}|g"
+    -e "s|__JAVA_VERSION__|${java_version_escaped}|g"
+    -e "s|__RULES_JAVA_VERSION__|${rules_java_version_escaped}|g"
+    -e "s|__YEAR__|${year_escaped}|g"
+  )
+
+  local i
+  for ((i = 0; i < ${#BAZEL_GEN_MANIFEST_OPTION_KEYS[@]}; i++)); do
+    local option_key_upper
+    option_key_upper="$(bazel_gen_to_upper "${BAZEL_GEN_MANIFEST_OPTION_KEYS[${i}]}")"
+    local option_value_escaped
+    option_value_escaped="$(bazel_gen_escape_sed_replacement "${BAZEL_GEN_MANIFEST_OPTION_VALUES[${i}]}")"
+    sed_args+=(-e "s|__OPT_${option_key_upper}__|${option_value_escaped}|g")
+  done
+
+  sed "${sed_args[@]}" "${template_source_file}" | bazel_gen_write_file "${output_file}"
 
   bazel_gen_set_executable_like "${template_source_file}" "${output_file}"
 }
@@ -168,7 +195,7 @@ bazel_gen_render_template_dir() {
     local relative_path
     relative_path="${source_file#${template_dir}/}"
     case "$(basename "${relative_path}")" in
-      template.meta|.DS_Store)
+      template.meta|template.manifest|.DS_Store)
         continue
         ;;
     esac

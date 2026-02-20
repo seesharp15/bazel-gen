@@ -20,6 +20,25 @@ bazel_gen_to_lower() {
   printf "%s" "$1" | tr '[:upper:]' '[:lower:]'
 }
 
+bazel_gen_to_upper() {
+  printf "%s" "$1" | tr '[:lower:]' '[:upper:]'
+}
+
+bazel_gen_expand_home() {
+  local path="$1"
+  case "${path}" in
+    "~")
+      printf "%s" "${HOME}"
+      ;;
+    "~/"*)
+      printf "%s/%s" "${HOME}" "${path#~/}"
+      ;;
+    *)
+      printf "%s" "${path}"
+      ;;
+  esac
+}
+
 bazel_gen_validate_app_name() {
   local app_name="$1"
   case "${app_name}" in
@@ -59,6 +78,11 @@ bazel_gen_slug_to_identifier() {
 bazel_gen_default_package() {
   local app_name="$1"
   printf "com.example.%s" "$(bazel_gen_slug_to_identifier "${app_name}")"
+}
+
+bazel_gen_validate_identifier() {
+  local identifier="$1"
+  [[ "${identifier}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]
 }
 
 bazel_gen_module_name_from_app() {
@@ -155,4 +179,19 @@ bazel_gen_join_path() {
 
 bazel_gen_escape_sed_replacement() {
   printf "%s" "$1" | sed -e 's/[\/&|]/\\&/g'
+}
+
+bazel_gen_replace_builtin_placeholders() {
+  local value="$1"
+  value="${value//__APP_NAME__/${BAZEL_GEN_TMPL_APP_NAME:-}}"
+  value="${value//__APP_SLUG__/${BAZEL_GEN_TMPL_APP_SLUG:-}}"
+  value="${value//__MODULE_NAME__/${BAZEL_GEN_TMPL_MODULE_NAME:-}}"
+  value="${value//__PACKAGE__/${BAZEL_GEN_TMPL_PACKAGE:-}}"
+  value="${value//__PACKAGE_PATH__/${BAZEL_GEN_TMPL_PACKAGE_PATH:-}}"
+  value="${value//__SCALA_VERSION__/${BAZEL_GEN_TMPL_SCALA_VERSION:-}}"
+  value="${value//__RULES_SCALA_VERSION__/${BAZEL_GEN_TMPL_RULES_SCALA_VERSION:-}}"
+  value="${value//__JAVA_VERSION__/${BAZEL_GEN_TMPL_JAVA_VERSION:-}}"
+  value="${value//__RULES_JAVA_VERSION__/${BAZEL_GEN_TMPL_RULES_JAVA_VERSION:-}}"
+  value="${value//__YEAR__/${BAZEL_GEN_TMPL_YEAR:-}}"
+  printf "%s" "${value}"
 }

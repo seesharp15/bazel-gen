@@ -1,0 +1,4 @@
+description|Runnable Java console app with Bazel
+option|package|--package|string|com.example.__APP_SLUG__|optional|Java package for generated sources
+option|java_version|--java-version|string|21|optional|Java language version passed to Bazel
+option|rules_java_version|--rules-java-version|version|9.5.0|optional|rules_java BCR version

@@ -7,10 +7,14 @@ export BAZEL_GEN_ROOT_DIR="${ROOT_DIR}"
 
 # shellcheck source=../lib/bazel_gen/core.sh
 source "${ROOT_DIR}/lib/bazel_gen/core.sh"
+# shellcheck source=../lib/bazel_gen/manifest.sh
+source "${ROOT_DIR}/lib/bazel_gen/manifest.sh"
 # shellcheck source=../lib/bazel_gen/templates.sh
 source "${ROOT_DIR}/lib/bazel_gen/templates.sh"
 # shellcheck source=../lib/bazel_gen/commands/new.sh
 source "${ROOT_DIR}/lib/bazel_gen/commands/new.sh"
+# shellcheck source=../lib/bazel_gen/commands/template.sh
+source "${ROOT_DIR}/lib/bazel_gen/commands/template.sh"
 
 bazel_gen_usage() {
   cat <<EOF
@@ -18,14 +22,16 @@ Usage:
   bazel-gen <command> [args]
 
 Commands:
-  new       Generate a new Bazel project scaffold.
-  version   Print the bazel-gen version.
-  help      Show this help.
+  new        Generate a new Bazel project scaffold.
+  template   Manage local project templates.
+  version    Print the bazel-gen version.
+  help       Show this help.
 
 Examples:
   bazel-gen new scala console my-app
+  bazel-gen new java console my-app
   bazel-gen gen new scala console my-app
-  bazel-gen new scala console my-app --package com.example.myapp
+  bazel-gen template init scala console-custom --from scala/console
   bazel-gen new --list
 EOF
 }
@@ -47,11 +53,18 @@ main() {
       shift
       bazel_gen_cmd_new "$@"
       ;;
+    template)
+      shift
+      bazel_gen_cmd_template "$@"
+      ;;
     gen)
       shift
       if [ "${1:-}" = "new" ]; then
         shift
         bazel_gen_cmd_new "$@"
+      elif [ "${1:-}" = "template" ]; then
+        shift
+        bazel_gen_cmd_template "$@"
       else
         bazel_gen_die "Unknown command: gen ${1:-}"
       fi
